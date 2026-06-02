@@ -386,8 +386,8 @@ body { margin: 0; padding: 0; background: #0A0A14; min-height: 100vh; min-height
       </div>
       <p class="payer-section-label">Payé par</p>
       <div class="payer-toggle" id="payer-toggle">
-        <button class="payer-seg" data-payer="her"><div class="av-mini her">A</div> Audrey</button>
         <button class="payer-seg active" data-payer="me"><div class="av-mini me">P</div> Pierre</button>
+        <button class="payer-seg" data-payer="her"><div class="av-mini her">A</div> Audrey</button>
       </div>
       <p class="payer-section-label">Répartition</p>
       <div class="payer-toggle" id="ratio-toggle">
@@ -456,8 +456,8 @@ body { margin: 0; padding: 0; background: #0A0A14; min-height: 100vh; min-height
       <div class="bulk-content">
         <p class="bulk-section-label">Payé par</p>
         <div class="payer-toggle">
-          <button class="payer-seg" data-bulk-payer="her"><div class="av-mini her">A</div> Audrey</button>
           <button class="payer-seg active" data-bulk-payer="me"><div class="av-mini me">P</div> Pierre</button>
+          <button class="payer-seg" data-bulk-payer="her"><div class="av-mini her">A</div> Audrey</button>
         </div>
         <p class="bulk-section-label">Dépenses</p>
         <textarea class="bulk-textarea" id="bulk-input" placeholder="Une dépense par ligne&#10;&#10;boulangerie 8,40&#10;naturalia 31,15&#10;maraîcher 16,70" rows="6"></textarea>
@@ -1538,31 +1538,21 @@ body { margin: 0; padding: 0; background: #0A0A14; min-height: 100vh; min-height
     showToast._timer = setTimeout(() => t.classList.remove('show'), 2200);
   }
 
-  async function copyRecapToClipboard() {
+  function shareRecapViaSms() {
     const text = buildRecapText();
     if (!text) return;
-    try {
-      await navigator.clipboard.writeText(text);
-      if (navigator.vibrate) navigator.vibrate(15);
-      showToast('Récap copié');
-    } catch (err) {
-      // Fallback for older browsers / non-secure contexts
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      ta.style.position = 'fixed';
-      ta.style.opacity = '0';
-      document.body.appendChild(ta);
-      ta.select();
-      try { document.execCommand('copy'); showToast('Récap copié'); }
-      catch (e) { showToast('Copie impossible'); }
-      document.body.removeChild(ta);
-    }
+    if (navigator.vibrate) navigator.vibrate(15);
+    // Copie silencieuse en repli (utile sur desktop où sms: n'ouvre rien)
+    if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
+    // Ouvre l'app Messages avec le récap pré-rempli ; le destinataire se choisit
+    // dans l'app (aucun numéro stocké dans le code).
+    window.location.href = 'sms:?&body=' + encodeURIComponent(text);
   }
 
   document.getElementById('bal-card').addEventListener('click', () => {
-    // Ne pas copier si solde équilibré ou pas de dépenses
+    // Ne rien faire si solde équilibré ou pas de dépenses
     if (document.getElementById('bal-card').classList.contains('zero')) return;
-    copyRecapToClipboard();
+    shareRecapViaSms();
   });
 
   function renderHistory() {

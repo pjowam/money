@@ -1538,22 +1538,65 @@ body { margin: 0; padding: 0; background: #0A0A14; min-height: 100vh; min-height
     showToast._timer = setTimeout(() => t.classList.remove('show'), 2200);
   }
 
+  function fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); showToast('Récap copié'); }
+    catch (e) { showToast('Copie impossible'); }
+    document.body.removeChild(ta);
+  }
+
+  // Appui court sur la card du solde : copie le récap dans le presse-papier.
+  function copyRecap() {
+    const text = buildRecapText();
+    if (!text) return;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text)
+        .then(() => { if (navigator.vibrate) navigator.vibrate(15); showToast('Récap copié'); })
+        .catch(() => fallbackCopy(text));
+    } else {
+      fallbackCopy(text);
+    }
+  }
+
+  // Appui long sur la card du solde : ouvre l'app Messages avec le récap pré-rempli ;
+  // le destinataire se choisit dans l'app (aucun numéro stocké dans le code).
   function shareRecapViaSms() {
     const text = buildRecapText();
     if (!text) return;
     if (navigator.vibrate) navigator.vibrate(15);
-    // Copie silencieuse en repli (utile sur desktop où sms: n'ouvre rien)
-    if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
-    // Ouvre l'app Messages avec le récap pré-rempli ; le destinataire se choisit
-    // dans l'app (aucun numéro stocké dans le code).
     window.location.href = 'sms:?&body=' + encodeURIComponent(text);
   }
 
-  document.getElementById('bal-card').addEventListener('click', () => {
-    // Ne rien faire si solde équilibré ou pas de dépenses
-    if (document.getElementById('bal-card').classList.contains('zero')) return;
-    shareRecapViaSms();
-  });
+  // Card du solde : appui court = presse-papier, appui long (500 ms) = SMS.
+  (function attachBalCardActions() {
+    const el = document.getElementById('bal-card');
+    let timer = null, fired = false;
+    const isZero = () => el.classList.contains('zero');
+    const start = () => {
+      if (isZero()) return;
+      fired = false;
+      timer = setTimeout(() => { fired = true; shareRecapViaSms(); }, 500);
+    };
+    const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+    el.addEventListener('mousedown', start);
+    el.addEventListener('touchstart', start, { passive: true });
+    el.addEventListener('mouseup', cancel);
+    el.addEventListener('mouseleave', cancel);
+    el.addEventListener('touchend', cancel);
+    el.addEventListener('touchmove', cancel);
+    el.addEventListener('touchcancel', cancel);
+    el.addEventListener('click', e => {
+      // Si l'appui long a déjà déclenché le SMS, on absorbe le clic qui suit.
+      if (fired) { e.preventDefault(); e.stopPropagation(); fired = false; return; }
+      if (isZero()) return;
+      copyRecap();
+    });
+  })();
 
   function renderHistory() {
     const list = document.getElementById('history-list');

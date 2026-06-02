@@ -1,6 +1,6 @@
 // moNeY — Service Worker
 // Bump CACHE_VERSION whenever you ship a new build to force clients to refresh.
-const CACHE_VERSION = 'money-v11';
+const CACHE_VERSION = 'money-v12';
 
 // App shell — relative URLs resolve against the SW scope (works on a GitHub
 // Pages project subpath like user.github.io/<repo>/ without hardcoding it).
